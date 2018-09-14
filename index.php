@@ -1,18 +1,17 @@
 <?PHP
 ini_set('memory_limit','105M');
+error_reporting(E_ALL ^ E_NOTICE);
 // ############################################################################
 $valid_url = '/.*/';
 $url = isset($_GET['url']) ? $_GET['url'] : false ;
 $type = isset($_GET['type']) ? $_GET['type'] : null;
 if ( !$url ) {
   
-  // Passed url not specified.
   $contents = 'ERROR: url not specified';
   $status = array( 'http_code' => 'ERROR' );
   
 } else if ( !preg_match( $valid_url, $url ) ) {
-  
-  // Passed url doesn't match $valid_url_regex.
+
   $contents = 'ERROR: invalid url';
   $status = array( 'http_code' => 'ERROR' );
   
@@ -37,7 +36,6 @@ if ( !$url ) {
   curl_close( $ch );
 }
 
-// Split header text into an array.
 $header_text = preg_split( '/[\r\n]+/', $header );
 $jsonresp =false;
 if ($type == 'html') {
@@ -49,23 +47,13 @@ if ($type == 'html') {
   }
   
   print $contents;
-
 } else {
   $type == 'json' ? $jsonresp = true : false;
   $data = array();
     $data['status'] = array();
     $data['status']['http_code'] = $status['http_code'];
   $decoded_json = json_decode( $contents);
-  $doc = new DOMDocument();
-  $doc->loadHTML($contents);
-  $doc->preserveWhiteSpace = false;
-  $content = $doc->getElementsByTagname('<html>');
-  $html = array();
-  foreach ($content as $item)
-  {
-      $out[] = $item->nodeValue;
-  }
-  $data['contents'] = $decoded_json ? $decoded_json : $html;
+  $data['contents'] = $decoded_json ? $decoded_json : $contents;
 ( isset($_SERVER['HTTP_X_REQUESTED_WITH']) ) ? 
   $is_xhr = strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' &&
   header( 'Content-type: application/' . ( $is_xhr ? 'json' : 'x-javascript' ) ) 
