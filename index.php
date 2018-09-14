@@ -1,18 +1,5 @@
 <?PHP
-
-
-
-function element_to_obj($element) {
-  $obj = array( "tag" => $element->tagName );
-  foreach ($element->attributes as $attribute) {
-      $obj[$attribute->name] = $attribute->value;
-  }
-  foreach ($element->childNodes as $subElement) {
-     ($subElement->nodeType == XML_TEXT_NODE) ? 
-          $obj["html"] = $subElement->wholeText : $obj["children"][] = element_to_obj($subElement);
-  }
-  return $obj;
-}
+ini_set('memory_limit','105M');
 // ############################################################################
 $valid_url = '/.*/';
 $url = isset($_GET['url']) ? $_GET['url'] : false ;
@@ -68,10 +55,17 @@ if ($type == 'html') {
   $data = array();
     $data['status'] = array();
     $data['status']['http_code'] = $status['http_code'];
-  $decoded_json = json_decode( $contents );
-  $dom = new DOMDocument;
-  $data['contents'] = $decoded_json ? $decoded_json :  ($dom->loadHTML($contents) ? element_to_obj($dom->documentElement) : false );
-  
+  $decoded_json = json_decode( $contents);
+  $doc = new DOMDocument();
+  $doc->loadHTML($contents);
+  $doc->preserveWhiteSpace = false;
+  $content = $doc->getElementsByTagname('<html>');
+  $html = array();
+  foreach ($content as $item)
+  {
+      $out[] = $item->nodeValue;
+  }
+  $data['contents'] = $decoded_json ? $decoded_json : $html;
 ( isset($_SERVER['HTTP_X_REQUESTED_WITH']) ) ? 
   $is_xhr = strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' &&
   header( 'Content-type: application/' . ( $is_xhr ? 'json' : 'x-javascript' ) ) 
@@ -79,7 +73,7 @@ if ($type == 'html') {
 
   $json = json_encode( $data );
   
-  print_r($jsonresp ? $json : $data);
+  var_dump($jsonresp ? $json : $data);
   
 }
 
