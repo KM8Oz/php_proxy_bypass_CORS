@@ -1,21 +1,29 @@
 <?PHP
 
-$enable_native   = false;
-$valid_url_regex = '/.*/';
 
-// #######################################fb.me/kmoz000##################################
 
+function element_to_obj($element) {
+  $obj = array( "tag" => $element->tagName );
+  foreach ($element->attributes as $attribute) {
+      $obj[$attribute->name] = $attribute->value;
+  }
+  foreach ($element->childNodes as $subElement) {
+     ($subElement->nodeType == XML_TEXT_NODE) ? 
+          $obj["html"] = $subElement->wholeText : $obj["children"][] = element_to_obj($subElement);
+  }
+  return $obj;
+}
+// ############################################################################
+$valid_url = '/.*/';
 $url = isset($_GET['url']) ? $_GET['url'] : false ;
-$type = isset($_GET['type']) ? $_GET['type'] : false;
-$url = isset($_POST['url']) ? $_POST['url'] : false ;
-$type = isset($_POST['type']) ? $_POST['type'] : false;
+$type = isset($_GET['type']) ? $_GET['type'] : null;
 if ( !$url ) {
   
   // Passed url not specified.
   $contents = 'ERROR: url not specified';
   $status = array( 'http_code' => 'ERROR' );
   
-} else if ( !preg_match( $valid_url_regex, $url ) ) {
+} else if ( !preg_match( $valid_url, $url ) ) {
   
   // Passed url doesn't match $valid_url_regex.
   $contents = 'ERROR: invalid url';
@@ -45,13 +53,8 @@ if ( !$url ) {
 // Split header text into an array.
 $header_text = preg_split( '/[\r\n]+/', $header );
 $jsonresp =false;
-if ( !($type == 'html') ) {
-  $type == 'json' ? $jsonresp = true : (
-  $contents = 'ERROR: invalid mode'&&
-  $status = array( 'http_code' => 'ERROR' ));
-}
 if ($type == 'html') {
-  // Propagate headers to response.
+  
   foreach ( $header_text as $header ) {
     if ( preg_match( '/^(?:Content-Type|Content-Language|Set-Cookie):/i', $header ) ) {
       header( $header );
@@ -59,25 +62,14 @@ if ($type == 'html') {
   }
   
   print $contents;
-  
-} else {
 
+} else {
+  $type == 'json' ? $jsonresp = true : false;
   $data = array();
     $data['status'] = array();
     $data['status']['http_code'] = $status['http_code'];
   $decoded_json = json_decode( $contents );
   $dom = new DOMDocument;
-  function element_to_obj($element) {
-    $obj = array( "tag" => $element->tagName );
-    foreach ($element->attributes as $attribute) {
-        $obj[$attribute->name] = $attribute->value;
-    }
-    foreach ($element->childNodes as $subElement) {
-       ($subElement->nodeType == XML_TEXT_NODE) ? 
-            $obj["html"] = $subElement->wholeText : $obj["children"][] = element_to_obj($subElement);
-    }
-    return $obj;
-}
   $data['contents'] = $decoded_json ? $decoded_json :  ($dom->loadHTML($contents) ? element_to_obj($dom->documentElement) : false );
   
 ( isset($_SERVER['HTTP_X_REQUESTED_WITH']) ) ? 
